@@ -40,4 +40,54 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    Mux16(a[0..14]=instruction[0..14], a[15]=false, b=aluout, sel=instruction[15], out=inA); // Areg input
+    Not(in=instruction[15], out=ainst); // positive flag of A-inst
+    Or(a=ainst, b=instruction[5], out=ldA); // Aload = ainst(p) | dest is A(inst[5])
+    ARegister(in=inA, load=ldA, out=outA, out[0..14]=addressM);
+
+    And(a=instruction[15], b=instruction[12], out=selM); //  !A-inst & a=1
+    Mux16(a=outA, b=inM, sel=selM, out=yin); // y input
+
+    And(a=instruction[15], b=instruction[4], out=ldD); // Dload = !ainst(p) & dest is D(inst[4])
+    DRegister(in=aluout, load=ldD, out=xin);
+
+    And(a=instruction[15], b=instruction[3], out=writeM, out=iwriteM); // writeM = !ainst(p) & dest is M(inst[3])
+
+
+    ALU(x=xin, y=yin, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], 
+        f=instruction[7], no=instruction[6], 
+        out=aluout, out=outM, zr=zeroflag, ng=negflag);
+
+    Not(in=zeroflag, out=nzflag);
+    Not(in=negflag, out=posflag);
+
+    And(a=nzflag, b=posflag, out=JGTflag);
+    And(a=zeroflag, b=true, out=JEQflag);
+    Or(a=zeroflag, b=posflag, out=JGEflag);
+    And(a=nzflag, b=negflag, out=JLTflag);
+    And(a=nzflag, b=true, out=JNEflag);
+    Or(a=zeroflag, b=negflag, out=JLEflag);
+
+    DMux8Way(in=true, sel=instruction[0..2], a=nojmpreq, b=JGTreq, c=JEQreq, d=JGEreq, e=JLTreq,
+         f=JNEreq, g=JLEreq, h=JMPreq);
+    
+    And(a=nojmpreq, b=false, out=nojmp);
+    And(a=JGTflag, b=JGTreq, out=JGTgo);
+    And(a=JEQflag, b=JEQreq, out=JEQgo);
+    And(a=JGEflag, b=JGEreq, out=JGEgo);
+    And(a=JLTflag, b=JLTreq, out=JLTgo);
+    And(a=JNEflag, b=JNEreq, out=JNEgo);
+    And(a=JLEflag, b=JLEreq, out=JLEgo);
+    And(a=true, b=JMPreq, out=JMPgo);
+
+    Or8Way(in[0]=nojmp, in[1]=JGTgo, in[2]=JEQgo, in[3]=JGEgo, in[4]=JLTgo, in[5]=JNEgo, 
+        in[6]=JLEgo, in[7]=JMPgo, out=ipcld);
+    And(a=instruction[15], b=ipcld, out=pcld); // Update PC by jump address only in C-innst
+
+    //Not(in=selM, out=nselM);
+    //Not(in=iwriteM, out=nwriteM);
+    //And(a=nselM, b=nwriteM, out=pcinc); // Increment of PC when !selM & !writeM
+
+    PC(in=outA, load=pcld, inc=true, reset=reset, out[0..14]=pc); // Program is stored in dedicated ROM
 }

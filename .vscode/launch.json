@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "configurations": [
+        {
+            "name": "Debug ANTLR4 grammar", // 任意の名前
+            "type": "antlr-debug",          // 決め打ち(多分)
+            "request": "launch",            // 決め打ち(多分)
+            "input": "projects/06/antlr/input2.txt",           // 入力となるテキストを記述したファイル
+//            "input": "projects/06/pong/Pong.asm",           // 入力となるテキストを記述したファイル
+            "grammar": "projects/06/antlr/hackasm.g4",      // 使用するグラマーファイル
+            "printParseTree": true,         // デバッグ結果をデバッグコンソールに表示するか
+            "visualParseTree": true         // デバッグ結果をグラフィカルなツリーで表示するか
+        },
+      ]
+}

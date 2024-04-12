@@ -1,0 +1,10 @@
+{
+    "antlr4.generation":{
+        "mode": "external",
+        "language": "Python3",
+        "listeners": true, 
+        "visitors": false, 
+        "alternativeJar": "/Users/tohshima/antlr/antlr-4.13.1-complete.jar", 
+        "outputDir": "parser" 
+    }
+}

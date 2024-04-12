@@ -1,0 +1,39 @@
+@123
+@A
+@JGT
+@THIS
+@R11
+
+@2
+@i
+@0
+@KBD
+@SCREEN
+
+@LOOP
+
+//
+@SP
+A
+M=!D
+A=A - 1
+AD= -1
+D = -1
+AM=-M
+MD=M+1
+M= M-1
+D=!M
+
+AD = A ; JGT
+
+(LOOP)
+
+AMD=D|M
+@LOOP
+
+(INFINITE_LOOP)
+   @INFINITE_LOOP
+   0;JMP            // infinite loop
+   @R1
+
+   //test

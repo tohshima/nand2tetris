@@ -1,6 +1,7 @@
 import sys
 sys.path.append("../")
 from Parser import Parser 
+from Parser import ParserIllegalException
 from CommandType import CommandType
 
 class TestCase:
@@ -99,31 +100,72 @@ class TestCase:
         assert parser.arg2() == -1
         assert parser.hasMoreLines() == False 
 
-    def __onelinePushPopCheck(self, operator, arg1, arg2):
+    def test_parseReturn(self):
+        testLines = ["return"]
+        parser = Parser(testLines)
+        parser.advance()
+        assert parser.commandType() == CommandType.C_RETURN
+        assert parser.arg1() == "return"
+        assert parser.arg2() == -1
+        assert parser.hasMoreLines() == False 
+
+    def __onelineOneArgCheck(self, operator, arg1):
+        testLines = [f'{operator} {arg1}']
+        parser = Parser(testLines)
+        parser.advance()
+        if operator == "label":
+            commandType = CommandType.C_LABEL
+        elif operator == "goto":
+            commandType = CommandType.C_GOTO
+        elif operator == "if-goto":
+            commandType = CommandType.C_IF
+        assert parser.commandType() == commandType
+        assert parser.arg1() == arg1
+        assert parser.arg2() == -1
+        assert parser.hasMoreLines() == False 
+
+    def test_parseLabel(self):
+        self.__onelineOneArgCheck("label", "AA_BB.CC")
+
+    def test_parseGoto(self):
+        self.__onelineOneArgCheck("goto", "abcd")
+
+    def test_parseIfGoto(self):
+        self.__onelineOneArgCheck("if-goto", "$")
+
+    def __onelineTwoArgsCheck(self, operator, arg1, arg2):
         testLines = [f'{operator} {arg1} {arg2}']
         parser = Parser(testLines)
         parser.advance()
-        assert parser.commandType() == CommandType.C_PUSH if operator == "push" else CommandType.C_POP
+        if operator == "push":
+            commandType = CommandType.C_PUSH
+        elif operator == "pop":
+            commandType = CommandType.C_POP
+        elif operator == "function":
+            commandType = CommandType.C_FUNCTION
+        elif operator == "call":
+            commandType = CommandType.C_CALL
+        assert parser.commandType() == commandType
         assert parser.arg1() == arg1
         assert parser.arg2() == arg2
         assert parser.hasMoreLines() == False 
         
     def test_parsePushLocal(self):
-        self.__onelinePushPopCheck("push", "local", 0)
+        self.__onelineTwoArgsCheck("push", "local", 0)
     def test_parsePushArgument(self):
-        self.__onelinePushPopCheck("push", "argument", 1)
+        self.__onelineTwoArgsCheck("push", "argument", 1)
     def test_parsePushThis(self):
-        self.__onelinePushPopCheck("push", "this", 10)
+        self.__onelineTwoArgsCheck("push", "this", 10)
     def test_parsePushThat(self):
-        self.__onelinePushPopCheck("push", "that", 100)
+        self.__onelineTwoArgsCheck("push", "that", 100)
     def test_parsePopConstant(self):
-        self.__onelinePushPopCheck("pop", "constant", 1000)
+        self.__onelineTwoArgsCheck("pop", "constant", 1000)
     def test_parsePopStatic(self):
-        self.__onelinePushPopCheck("pop", "static", 10000)
+        self.__onelineTwoArgsCheck("pop", "static", 10000)
     def test_parsePopTemp(self):
-        self.__onelinePushPopCheck("pop", "temp", 10)
+        self.__onelineTwoArgsCheck("pop", "temp", 10)
     def test_parsePopPointer(self):
-        self.__onelinePushPopCheck("pop", "pointer", 20)
+        self.__onelineTwoArgsCheck("pop", "pointer", 20)
 
     def test_parsePopPointerWithComment(self):
         testLines = ["  pop  pointer 2  // pop"]
@@ -142,4 +184,48 @@ class TestCase:
         assert parser.arg1() == ""
         assert parser.arg2() == -1
         assert parser.hasMoreLines() == False 
+
+    def test_parseFunction(self):
+        self.__onelineTwoArgsCheck("function", "local", 1234)
+
+    def test_parseCall(self):
+        self.__onelineTwoArgsCheck("call", "_:.$12AA_bb", 12345)
+
+    def test_parseCallWithIllegalSymbol(self):
+        try:
+            self.__onelineTwoArgsCheck("call", "0_:.$12", 12345)
+        except ParserIllegalException:
+            assert True
+        else:
+            assert False
+
+    def test_MemoryAccessBasicTest(self):
+        parser = Parser("../StackArithmetic/SimpleAdd/SimpleAdd.vm")
+        assert parser.numLines == 9
+        parser.advance()
+        assert parser.commandType() == CommandType.C_PUSH
+        assert parser.arg1() == "constant"
+        assert parser.arg2() == 7
+        assert parser.currentLine == 6 
+        assert parser.hasMoreLines() == True 
+        parser.advance()
+        assert parser.commandType() == CommandType.C_PUSH
+        assert parser.arg1() == "constant"
+        assert parser.arg2() == 8
+        assert parser.currentLine == 7 
+        assert parser.hasMoreLines() == True 
+        parser.advance()
+        assert parser.commandType() == CommandType.C_ARITHMETIC
+        assert parser.arg1() == "add"
+        assert parser.arg2() == -1
+        assert parser.currentLine == 8 
+        assert parser.hasMoreLines() == False 
+        parser.advance()
+        assert parser.commandType() == None
+        assert parser.arg1() == ""
+        assert parser.arg2() == -1
+        assert parser.currentLine == 8 
+        assert parser.hasMoreLines() == False 
+
+
     

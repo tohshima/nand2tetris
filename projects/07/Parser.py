@@ -20,6 +20,39 @@ class Parser:
 
         self.__defPatterns()
     
+    def hasMoreLines(self):
+        if self.__currentLine < self.__numLines-1:
+            return True
+        else:
+            return False
+    
+    def advance(self):
+        self.__resetRes()
+        while (self.hasMoreLines()):
+            self.__currentLine += 1
+            line = self.__lines[self.__currentLine]
+            if self.__checkNoArg(line):
+                break
+            elif self.__checkOneArg(line):
+                break
+            elif self.__checkPushPop(line):
+                break
+            elif self.__checkFunctionCall(line):
+                break
+            elif self.__repatOnlyComment.fullmatch(line):
+                continue
+            else:
+                raise ParserIllegalException(f'Illegal input line {self.__currentLine+1}: {line}')
+
+    def commandType(self):
+        return self.__commandType
+    
+    def arg1(self):
+        return self.__arg1
+
+    def arg2(self):
+        return self.__arg2
+
     def __resetRes(self):
         self.__commandType = None
         self.__arg1 = ""
@@ -33,12 +66,6 @@ class Parser:
         self.__repatFunctionCall = re.compile(r'\s*(?P<operator>function|call)\s+(?P<arg1>'+hackSymbolPat+r')\s+(?P<arg2>\d+)\s*(//.*)?')
         self.__repatOnlyComment = re.compile(r'\s*(//.*)?') # Including only white spaces
 
-    def hasMoreLines(self):
-        if self.__currentLine < self.__numLines-1:
-            return True
-        else:
-            return False
-    
     def __checkNoArg(self, line):
         match = self.__repatNoArg.fullmatch(line) 
         if match == None:
@@ -91,33 +118,6 @@ class Parser:
         self.__arg2 = int(match.group('arg2'))
         return True
     
-    def advance(self):
-        self.__resetRes()
-        while (self.hasMoreLines()):
-            self.__currentLine += 1
-            line = self.__lines[self.__currentLine]
-            if self.__checkNoArg(line):
-                break
-            elif self.__checkOneArg(line):
-                break
-            elif self.__checkPushPop(line):
-                break
-            elif self.__checkFunctionCall(line):
-                break
-            elif self.__repatOnlyComment.fullmatch(line):
-                continue
-            else:
-                raise ParserIllegalException(f'Illegal input line {self.__currentLine+1}: {line}')
-
-    def commandType(self):
-        return self.__commandType
-    
-    def arg1(self):
-        return self.__arg1
-
-    def arg2(self):
-        return self.__arg2
-
     # for unit test
     @property
     def currentLine(self):

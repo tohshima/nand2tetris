@@ -11,6 +11,7 @@ class CodeWriter:
         self.__filename_or_testLines = filename_or_testLines
         self.__pc = pcOffset
         self.__labelMode = labelMode
+        self.__pt = {"local":"LCL", "argument":"ARG", "this":"THIS", "that":"THAT", "temp":"R5", "static":"R0", "pointer":"THIS"}
 
         if isinstance(filename_or_testLines, list):
             self.__writeToList = True
@@ -107,12 +108,16 @@ class CodeWriter:
             code.append(f'@{index: <6} // {self.__pc+0: >5}:A={index}')
             code.append(f'D=A     // {self.__pc+1: >5}:D=A:{index}')
             self.__pc += 2
-        elif segment == "local" or segment == "argument" or segment == "this" or segment == "that":
-            pt = {"local":"LCL", "argument":"ARG", "this":"THIS", "that":"THAT"}[segment]
+        elif segment == "local" or segment == "argument" or segment == "this" or \
+            segment == "that" or segment == "temp" or segment == "static" or segment == "pointer":
+            pt = self.__pt[segment]
             code.append(f'@{index: <6} // {self.__pc+0: >5}:A={index}')
             code.append(f'D=A     // {self.__pc+1: >5}:D=A:{index}')
             code.append(f'@{pt: <6} // {self.__pc+2: >5}:A=&{pt}:1')
-            code.append(f'A=M+D   // {self.__pc+3: >5}:A=*{pt}+{index}')
+            if segment == "temp" or segment == "static" or segment == "pointer":
+                code.append(f'A=D+A   // {self.__pc+3: >5}:A=D:{index}+A:&{pt}')
+            else:
+                code.append(f'A=M+D   // {self.__pc+3: >5}:A=*{pt}+{index}')
             code.append(f'D=M     // {self.__pc+4: >5}:D=*(*{pt}+{index})')
             self.__pc += 5
         else:
@@ -125,12 +130,46 @@ class CodeWriter:
         code.append(f'M=D     // {self.__pc+5: >5}:SP=D:SP+1')
         self.__pc += 6
         
+    def __makePopCode(self, segment, index, code:list):
+        code.append(f'// pop {segment} {index}')
+        if segment == "constant":
+            code.append(f'@SP     // {self.__pc+0: >5}:A=&SP:0')
+            code.append(f'M=M-1   // {self.__pc+1: >5}:SP=SP-1')
+            self.__pc += 2
+        elif segment == "local" or segment == "argument" or segment == "this" or \
+                segment == "that" or segment == "temp" or segment == "static" or segment == "pointer":
+            pt = self.__pt[segment]
+            code.append(f'@{index: <6} // {self.__pc+0: >5}:A={index}')
+            code.append(f'D=A     // {self.__pc+1: >5}:D=A:{index}')
+            code.append(f'@{pt: <6} // {self.__pc+2: >5}:A=&{pt}:1')
+            if segment == "temp" or segment == "static" or segment == "pointer":
+                code.append(f'D=D+A   // {self.__pc+3: >5}:D=D:{index}+A:&{pt}:destination address')
+            else:
+                code.append(f'D=D+M   // {self.__pc+3: >5}:D=D:{index}+{pt}:destination address')
+            code.append(f'@SP     // {self.__pc+4: >5}:A=&SP:0')
+            code.append(f'A=M     // {self.__pc+5: >5}:A=SP')
+            code.append(f'M=D     // {self.__pc+6: >5}:*SP=D:destination address (temporally storing)')
+
+            code.append(f'A=A-1   // {self.__pc+7: >5}:A=SP-1')
+            code.append(f'D=M     // {self.__pc+8: >5}:*(SP-1)=D:copying data')
+            code.append(f'A=A+1   // {self.__pc+9: >5}:A=SP')
+            code.append(f'A=M     // {self.__pc+10: >5}:A=*SP:destination address')
+            code.append(f'M=D     // {self.__pc+11: >5}:*(destination address)=D:copying data')
+
+            code.append(f'@SP     // {self.__pc+12: >5}:A=&SP:0')
+            code.append(f'M=M-1   // {self.__pc+13: >5}:SP=SP-1')
+            self.__pc += 14
+        else:
+            raise CommandWriterUnsupported(f'Unsupported Pop segment: {segment}.')
+        
     def writePushPop(self, push_or_pop:CommandType, segment, index):
         code = []
         if push_or_pop == CommandType.C_PUSH:
             self.__makePushCode(segment, index, code)
+        elif push_or_pop == CommandType.C_POP:
+            self.__makePopCode(segment, index, code)
         else:
-            CommandWriterUnsupported(f'Unsupported command {push_or_pop}.')
+            raise CommandWriterUnsupported(f'Unsupported command {push_or_pop}.')
         if self.__writeToList:
             self.__filename_or_testLines.extend(code)           
         else:
@@ -141,4 +180,9 @@ class CodeWriter:
         if not self.__writeToList:
             self.__f.close()
 
+    # for unit test
+    @property
+    def pc(self):
+        return self.__pc
+    
     

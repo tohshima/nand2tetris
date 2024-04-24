@@ -1,0 +1,8 @@
+.gitignore
+.antlr
+hackasm*.py
+__pycache__
+*.tokens
+*.diff
+tools/bin/*.dat
+*.out

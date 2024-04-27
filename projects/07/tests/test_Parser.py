@@ -2,7 +2,7 @@ import sys
 sys.path.append("../")
 from Parser import Parser 
 from Parser import ParserIllegalException
-from CommandType import CommandType
+from HackVM import CommandType
 
 class TestCase:
 

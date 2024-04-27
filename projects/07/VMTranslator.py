@@ -1,7 +1,7 @@
 import sys
 from Parser import Parser;
 from CodeWriter import CodeWriter;
-from CommandType import CommandType
+from HackVM import CommandType
 
 class VMTranslatorUnsupported(Exception):
     pass
@@ -23,8 +23,20 @@ def main(argv):
             codeWriter.writeArithmetic(parser.arg1())
         elif commandType == CommandType.C_PUSH or commandType == CommandType.C_POP:
             codeWriter.writePushPop(commandType, parser.arg1(), parser.arg2())
+        elif commandType == CommandType.C_LABEL:
+            codeWriter.writeLabel(parser.arg1())
+        elif commandType == CommandType.C_GOTO:
+            codeWriter.writeGoto(parser.arg1())
+        elif commandType == CommandType.C_IF:
+            codeWriter.writeIf(parser.arg1())
+        elif commandType == CommandType.C_FUNCTION:
+            codeWriter.writeFunction(parser.arg1(), parser.arg2())
+        elif commandType == CommandType.C_RETURN:
+            codeWriter.writeReturn()
+        elif commandType == CommandType.C_CALL:
+            codeWriter.writeCall(parser.arg1(), parser.arg2())
         else:
-            raise VMTranslatorUnsupported("Unsupported command type: {CommandType}.")
+            raise VMTranslatorUnsupported(f'Unsupported command type: {commandType}.')
     
     if len(argv) == 3:
         codeWriter.close()

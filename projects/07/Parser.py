@@ -1,4 +1,4 @@
-from CommandType import CommandType
+from HackVM import CommandType
 import re
 
 class ParserIllegalException(Exception):
